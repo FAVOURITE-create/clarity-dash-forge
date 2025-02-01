@@ -26,6 +26,61 @@ Clarinet.test({
 });
 
 Clarinet.test({
+    name: "Can convert dashboard to template",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const wallet_1 = accounts.get('wallet_1')!;
+        
+        // First create a dashboard
+        let block = chain.mineBlock([
+            Tx.contractCall('dash_forge', 'create-dashboard', [
+                types.utf8("Template Dashboard"),
+                types.utf8('{"type": "bar-chart"}')
+            ], wallet_1.address)
+        ]);
+        
+        // Convert to template
+        let templateBlock = chain.mineBlock([
+            Tx.contractCall('dash_forge', 'convert-to-template', [
+                types.uint(1),
+                types.uint(100)
+            ], wallet_1.address)
+        ]);
+        
+        templateBlock.receipts[0].result.expectOk().expectBool(true);
+    }
+});
+
+Clarinet.test({
+    name: "Can purchase template",
+    async fn(chain: Chain, accounts: Map<string, Account>) {
+        const wallet_1 = accounts.get('wallet_1')!;
+        const wallet_2 = accounts.get('wallet_2')!;
+        const price = 100;
+        
+        // Create and convert to template
+        let setup = chain.mineBlock([
+            Tx.contractCall('dash_forge', 'create-dashboard', [
+                types.utf8("Template Dashboard"),
+                types.utf8('{"type": "bar-chart"}')
+            ], wallet_1.address),
+            Tx.contractCall('dash_forge', 'convert-to-template', [
+                types.uint(1),
+                types.uint(price)
+            ], wallet_1.address)
+        ]);
+        
+        // Purchase template
+        let purchaseBlock = chain.mineBlock([
+            Tx.contractCall('dash_forge', 'purchase-template', [
+                types.uint(1)
+            ], wallet_2.address)
+        ]);
+        
+        purchaseBlock.receipts[0].result.expectOk().expectUint(2);
+    }
+});
+
+Clarinet.test({
     name: "Can update dashboard if owner",
     async fn(chain: Chain, accounts: Map<string, Account>) {
         const wallet_1 = accounts.get('wallet_1')!;
